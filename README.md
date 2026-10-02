@@ -26,23 +26,39 @@ conservés par l’application.
   morceaux, visionneuse/partage/suppression
 - **Horaire, Nouvelles, Documents de cours** dans le visualiseur du portail
 
-## Lancer l’application
+## Lancer l’application (développement)
 
 **Le plus simple :** double-cliquer sur **Start O** sur le bureau (ou
-`Start O.bat` dans ce dossier) — un terminal ouvre le QR code.
+`Start O.bat` dans ce dossier) — un menu propose :
 
-- **Start O** — mode tunnel : fonctionne même si le téléphone ne voit pas le PC
-- **Start O (LAN)** — mode réseau local, plus rapide sur le même Wi-Fi
-- Si le téléphone ne se connecte pas sur le LAN : clic droit sur
-  **Enable LAN mode (Run as admin).bat** → Exécuter en tant qu’administrateur
-  (passe le réseau Windows en « Privé » et ouvre le pare-feu pour Node)
-- Scanner le QR avec l’appareil photo de l’iPhone (**Expo Go** requis)
+1. **Tunnel** (défaut) — fonctionne même si le téléphone ne voit pas le PC
+2. **LAN** — réseau local, plus rapide sur le même Wi-Fi
+3. **Corriger le LAN** — élève en administrateur, passe le réseau Windows en
+   « Privé », ouvre le pare-feu pour Node, puis démarre en LAN
+
+Scanner le QR avec l’appareil photo de l’iPhone (**Expo Go** requis).
 
 Manuellement :
 
 ```bash
 npx expo start --tunnel    # ou: npx expo start
 ```
+
+## Installer l’app sur l’iPhone (Sideloadly)
+
+L’app est compilée **sans signature** sur GitHub Actions (gratuit pour un
+dépôt public), puis signée gratuitement avec votre identifiant Apple par
+**Sideloadly** :
+
+1. Télécharger l’IPA : GitHub Actions → exécution réussie → artefact
+   `Omnivox-ipa` → `Omnivox.ipa` (ou `build\Omnivox.ipa` localement)
+2. Brancher l’iPhone en USB, ouvrir **Sideloadly**, glisser l’IPA, saisir
+   l’identifiant Apple, cliquer **Start**
+3. Sur l’iPhone : Réglages → Général → Gestion et supervision des appareils
+   → faire confiance au certificat du développeur
+
+Compte Apple gratuit : expiration après **7 jours** (rafraîchie
+automatiquement tant que Sideloadly reste ouvert), **3 apps** maximum.
 
 ## Vérifications
 

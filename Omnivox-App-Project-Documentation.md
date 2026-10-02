@@ -130,14 +130,14 @@ SDK). Paquets inutilisés du gabarit retirés : `@expo/ui`, `expo-image`,
 ## 4. Comment lancer
 
 **Le plus simple — un double-clic :** double-cliquer sur **Start O** sur le
- bureau (ou `Start O.bat` dans le dossier du projet). Le terminal affiche le QR
-code. Raccourcis installés avec l’icône du projet :
+ bureau (ou `Start O.bat` dans le dossier du projet). Le terminal affiche un
+ menu puis le QR code. Les trois anciens scripts ont été fusionnés en un seul :
 
-| Raccourci / script | À utiliser quand |
+| Option du menu **Start O** | À utiliser quand |
 |---|---|
-| **Start O** (`Start O.bat`) | Mode tunnel — fonctionne même si le téléphone ne voit pas le PC (défaut recommandé) |
-| **Start O (LAN)** (`Start O (LAN).bat`) | Téléphone et PC sur le même Wi-Fi (plus rapide) |
-| **Enable LAN mode (Run as admin).bat** | Le téléphone ne se connecte pas en LAN : clic droit → Exécuter en tant qu’administrateur (passe le profil réseau Windows en « Privé » et crée les règles de pare-feu pour `node.exe`) |
+| **1. Tunnel** (défaut) | Fonctionne même si le téléphone ne voit pas le PC (recommandé) |
+| **2. LAN** | Téléphone et PC sur le même Wi-Fi (plus rapide) |
+| **3. Corriger le LAN** | Le téléphone ne se connecte pas en LAN : élève en administrateur, passe le profil réseau Windows en « Privé », crée les règles de pare-feu pour `node.exe`, puis démarre en LAN |
 
 Puis scanner le QR avec l’appareil photo de l’iPhone (**Expo Go** requis).
 
@@ -156,6 +156,34 @@ npx expo lint                       # eslint — 0 problème
 npx expo export --platform ios      # bundle de production — OK
 npx expo-doctor                     # 21/21
 ```
+
+### Build de l’app installable (IPA) — GitHub Actions + Sideloadly
+
+1. Un **push** sur `main` (ou déclenchement manuel) lance le workflow
+   `.github/workflows/build-ios.yml` sur le dépôt public
+   <https://github.com/Elias2432/omnivox>
+2. Le workflow : `npm install` → `npx expo prebuild -p ios --no-install` →
+   `pod install` (cache CocoaPods) → `xcodebuild archive` **sans signature**
+   (`macos-26`, Xcode 26.6) → zip `Payload/*.app` → artefact **`Omnivox-ipa`**
+3. Télécharger l’artefact : `Omnivox.ipa`
+4. **Sideloadly** : iPhone branché en USB → glisser l’IPA → identifiant
+   Apple → **Start** → sur l’iPhone, Réglages → Général → Gestion et
+   supervision des appareils → faire confiance au certificat
+
+Pourquoi ce chemin : EAS Build cloud exige un compte Apple **payant** ; IPA
+non signé + Sideloadly signe gratuitement (compte gratuit : expiration après
+7 jours rafraîchie automatiquement tant que Sideloadly tourne, **3 apps**
+maximum).
+
+Correctifs de build :
+- `patch-package` (`patches/expo-modules-jsi+57.1.1.patch`) : retrait de
+  `SWIFT_RETURNS_RETAINED` sur les **constructeurs** `RuntimeScheduler` —
+  clang/Xcode 26 refuse cette annotation sur un constructeur
+- `macos-26` + Xcode 26.6 : Swift 6.3 est le minimum d’Expo SDK 57
+  (Swift 6.2 sur Xcode ≤ 26.3 échoue avec `sending … data races` dans
+  `JavaScriptRuntime.swift`)
+- Lockfile généré sous Windows : `npm install` en CI au lieu de `npm ci`
+  (les dépendances optionnelles par plateforme manquent au lockfile)
 
 ## 5. Architecture
 
@@ -284,6 +312,8 @@ src/
 | `npx expo-doctor` | ✅ 21/21 |
 | `npx expo install --check` | ✅ dépendances à jour |
 | `Start O.bat` (lancement réel) | ✅ Metro + tunnel ngrok : `https://…exp.direct` |
+| GitHub Actions « Build iOS IPA » | ✅ run #6 : succès en 11 min 49 s → artefact `Omnivox.ipa` (11,3 Mo : binaire 6,56 Mo + `main.jsbundle` 2,96 Mo) |
+| `npm ci` sous Windows | ⚠️ lockfile incomplet pour darwin → `npm install` en CI |
 
 Correctifs et pièges rencontrés :
 - RN 0.86 a supprimé `StyleSheet.absoluteFillObject` → styles de remplissage explicites
@@ -297,6 +327,17 @@ Correctifs et pièges rencontrés :
   pare-feu pour `node.exe` → script `Enable LAN mode (Run as admin).bat`
 - 5 onglets avec WebView chacun au lancement → remplacés par des écrans natifs
   (une seule WebView profonde : le probe)
+- CI iOS : `npm ci` échoue (lockfile Windows sans optionnels darwin) →
+  `npm install --no-audit --no-fund`
+- CI iOS : Xcode 16.4 par défaut ≠ tools-version Swift 6.2 du Package.swift
+  d’`expo-modules-jsi` → pin `DEVELOPER_DIR` ; 26.3 (Swift 6.2) échoue sur
+  `sending … data races` → `macos-26` + Xcode 26.6 (Swift 6.3)
+- Xcode 26 refuse `SWIFT_RETURNS_RETAINED` sur les constructeurs
+  `RuntimeScheduler` → patch `patch-package` appliqué au `postinstall`
+- Pousser un fichier `.github/workflows/*.yml` exige le scope `workflow` du
+  token GitHub → `gh auth refresh -s workflow`
+- `gh` absent de Windows : échec winget (UAC 1602) → binaire portable dans
+  `%LOCALAPPDATA%\Programs\gh\bin\` + PATH utilisateur
 
 ## 9. Limitations connues et travaux futurs
 
@@ -309,9 +350,13 @@ Correctifs et pièges rencontrés :
 - Les données scappées ne sont mises à jour que pendant l’utilisation de l’app
   (sondage 2 min + premier plan)
 - Les cégeps personnalisés ne sont pas testés (motifs FR/GEN)
+- L’app installée expire après **7 jours** (compte Apple gratuit) : garder
+  Sideloadly ouvert pour le renouvellement automatique, sinon re-glisser
+  l’IPA. Les notifications locales et badges fonctionnent (pas d’APNs requis)
 - À faire avec l’utilisateur : capture de l’écran d’erreur rouge éventuel
   (Phase 3 du plan), réglage fin des couleurs/largeurs d’en-tête au pixel près,
-  puces TestFlight via `eas build`, styles iOS 26 Liquid Glass
+  puces TestFlight via `eas build` (nécessite un compte Apple payant),
+  styles iOS 26 Liquid Glass
 
 ## 10. Annexe
 
@@ -325,6 +370,9 @@ tous en `<hôte>.omnivox.ca`, `https://<hôte>/intr/` répond.
 - Entrée : `https://<hôte>/intr/`
 - Connexion : `https://<hôte>/Login/Account/Login?ReturnUrl=/intr/`
 - Déconnexion : `https://<hôte>/intr/Module/Identification/Quitter.aspx`
+- Dépôt GitHub (build IPA) : `https://github.com/Elias2432/omnivox`
+- Sideloadly : `C:\Users\sxmaj\AppData\Local\Sideloadly\sideloadly.exe`
+- GitHub CLI portable : `C:\Users\sxmaj\AppData\Local\Programs\gh\bin\gh.exe`
 
 ### Commandes utiles
 ```powershell
@@ -334,7 +382,17 @@ npx tsc --noEmit            # typecheck
 npx expo lint               # lint
 npx expo export --platform ios
 npx expo-doctor
-npx expo run:ios            # build local (en sortant d’Expo Go)
+npx expo run:ios            # build local (macOS uniquement)
+npx patch-package expo-modules-jsi   # régénérer le patch après mise à jour
+```
+
+### Suivi du build IPA
+```powershell
+$gh = "$env:LOCALAPPDATA\Programs\gh\bin\gh.exe"
+& $gh run list --repo Elias2432/omnivox --limit 5        # états des builds
+& $gh run view <id> --repo Elias2432/omnivox --log       # journal complet
+& $gh run download <id> --repo Elias2432/omnivox --name Omnivox-ipa --dir build
+git push                                                 # déclenche un build
 ```
 
 ---
