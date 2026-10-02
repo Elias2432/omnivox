@@ -296,11 +296,15 @@ src/
   (`house.fill`, `envelope.fill`, `book.fill`, `square.grid.2x2.fill`,
   `megaphone.fill`), badge rouge sur Mio et Léa
 - **En-têtes de stack** : fond orange, texte blanc (ThemeProvider racine)
-- **Icône d’app** : création originale — anneau blanc « O » sur fond noir
-  (1024×1024 + favicon, couches Android, `.ico` Windows pour les raccourcis) ;
-  fond de splash et Android `#000000`
-- Toute la charte/illustrations sont des réimplémentations originales — aucun
-  asset Skytech n’est utilisé
+- **Icône d’app iOS** : la fleur orange originale Omnivox (fournie par
+  l’utilisateur, 447 px → 1024×1024 RGB opaque, `assets/images/icon.png`) —
+  usage personnel sideloadé. Nom d’accueil **« Omnivox Mobile »** via
+  `ios.infoPlist.CFBundleDisplayName` (le schéma Xcode/CI reste `Omnivox`,
+  `buildNumber` 2). Icônes secondaires toujours « anneau O » : favicon,
+  couches Android, `.ico` Windows des raccourcis, splash `#000000`
+- Toute la charte/illustrations internes sont des réimplémentations
+  originales — seul l’icône d’app iOS reprend l’artwork Skytech (usage
+  personnel, non destiné au magasin)
 
 ## 8. Résultats de vérification
 

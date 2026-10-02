@@ -10,7 +10,10 @@
     "ios": {
       "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.sxmaj.omnivox",
-      "buildNumber": "1"
+      "buildNumber": "2",
+      "infoPlist": {
+        "CFBundleDisplayName": "Omnivox Mobile"
+      }
     },
     "android": {
       "adaptiveIcon": {
