@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Omnivox — Visualiseur PC</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --panel: #171b22;
+    --border: #2a303a;
+    --text: #e8eaed;
+    --muted: #9aa3ad;
+    --accent: #1e6fd9;
+    --orange: #f5821f;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: radial-gradient(1200px 600px at 50% -200px, #1b2230 0%, var(--bg) 60%);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  header {
+    width: 100%;
+    padding: 16px 24px 6px;
+    text-align: center;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 650;
+    letter-spacing: 0.2px;
+  }
+  header h1 .dot { color: var(--orange); }
+  header p {
+    margin: 4px 0 0;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    margin: 12px 0 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  button {
+    font: inherit;
+    font-size: 13px;
+    color: var(--text);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 7px 14px;
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); }
+  button.primary:hover { filter: brightness(1.1); }
+
+  .stage {
+    flex: 1;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px 18px;
+    min-height: 0;
+  }
+
+  .phone {
+    position: relative;
+    height: min(844px, calc(100vh - 190px));
+    aspect-ratio: 390 / 844;
+    background: #05060a;
+    border-radius: 54px;
+    padding: 12px;
+    box-shadow:
+      0 0 0 2px #30343c,
+      0 24px 60px rgba(0, 0, 0, 0.55),
+      inset 0 0 0 1px #000;
+  }
+  .screen {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 42px;
+    overflow: hidden;
+    background: #fff;
+  }
+  .island {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 96px;
+    height: 26px;
+    background: #000;
+    border-radius: 999px;
+    z-index: 3;
+    pointer-events: none;
+  }
+  iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #fff;
+  }
+  .overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    background: #f4f5f7;
+    color: #1a1a1a;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 32px;
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .overlay.show { display: flex; }
+  .overlay code {
+    background: #e8e9ec;
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-size: 13px;
+  }
+  .overlay button { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  footer {
+    width: 100%;
+    text-align: center;
+    font-size: 11.5px;
+    color: var(--muted);
+    padding: 0 16px 12px;
+  }
+  footer b { color: var(--text); font-weight: 600; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Omnivox <span class="dot">•</span> Visualiseur PC</h1>
+    <p>
+      Aperçu interactif de l’application iPhone sur ce ordinateur — interface native,
+      données de démonstration.
+    </p>
+  </header>
+
+  <div class="toolbar">
+    <button class="primary" onclick="reloadApp()">Recharger</button>
+    <button onclick="openExternal()">Ouvrir dans un onglet</button>
+    <button onclick="location.reload()">Rafraîchir le cadre</button>
+  </div>
+
+  <div class="stage">
+    <div class="phone">
+      <div class="screen">
+        <div class="island"></div>
+        <iframe id="app" src="http://localhost:8081" title="Omnivox (aperçu)"></iframe>
+        <div class="overlay" id="overlay">
+          <div id="overlayText">
+            Le serveur Expo (Metro) ne répond pas encore sur
+            <code>http://localhost:8081</code>.<br />
+            Lancez l’option <b>[4] Visualiser</b> du raccourci <b>Start O</b>, puis patientez
+            le premier démarrage (~30 s).
+          </div>
+          <button onclick="reloadApp()">Réessayer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Serveur : <b>http://localhost:8081</b> ·
+    Pour voir le vrai portail, ouvrez « Ouvrir dans un onglet » (l’aperçu PC n’accède jamais à
+    vos données réelles) ·
+    L’application sur iPhone ne contient aucun de ces contenus fictifs.
+  </footer>
+
+  <script>
+    const frame = document.getElementById('app');
+    const overlay = document.getElementById('overlay');
+    let timer = null;
+
+    function showOverlay() {
+      overlay.classList.add('show');
+    }
+    function hideOverlay() {
+      overlay.classList.remove('show');
+    }
+
+    function watchLoad() {
+      if (timer) clearTimeout(timer);
+      hideOverlay();
+      timer = setTimeout(() => {
+        // No reliable cross-origin signal: if the page is still about:blank,
+        // the server was not up when the frame was created.
+        try {
+          if (!frame.contentWindow || frame.contentWindow.location.href === 'about:blank') {
+            showOverlay();
+          }
+        } catch (e) {
+          // Cross-origin access means the app IS loading — nothing to show.
+        }
+      }, 12000);
+    }
+
+    function reloadApp() {
+      watchLoad();
+      frame.src = 'http://localhost:8081';
+    }
+
+    function openExternal() {
+      window.open('http://localhost:8081', '_blank', 'noopener');
+    }
+
+    frame.addEventListener('load', () => {
+      if (timer) clearTimeout(timer);
+      hideOverlay();
+    });
+
+    watchLoad();
+    // If Metro is already down at first paint, surface the hint quickly.
+    fetch('http://localhost:8081', { mode: 'no-cors' })
+      .catch(() => showOverlay())
+      .then((r) => {
+        if (r) hideOverlay();
+      });
+  </script>
+</body>
+</html>

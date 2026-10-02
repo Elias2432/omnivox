@@ -138,6 +138,7 @@ SDK). Paquets inutilisés du gabarit retirés : `@expo/ui`, `expo-image`,
 | **1. Tunnel** (défaut) | Fonctionne même si le téléphone ne voit pas le PC (recommandé) |
 | **2. LAN** | Téléphone et PC sur le même Wi-Fi (plus rapide) |
 | **3. Corriger le LAN** | Le téléphone ne se connecte pas en LAN : élève en administrateur, passe le profil réseau Windows en « Privé », crée les règles de pare-feu pour `node.exe`, puis démarre en LAN |
+| **4. Visualiser** | Aperçu de l’app **sur le PC** : démarre Metro dans une seconde fenêtre, attend `localhost:8081`, puis ouvre `Visualiser.html` (cadre iPhone, données de démonstration) — voir « Aperçu PC » ci-dessous |
 
 Puis scanner le QR avec l’appareil photo de l’iPhone (**Expo Go** requis).
 
@@ -148,12 +149,49 @@ cd C:\Users\sxmaj\Documents\Omnivox
 npx expo start --tunnel      # ou: npx expo start (LAN)
 ```
 
+### Aperçu PC (Visualiser)
+
+Objectif : **voir et manipuler l’application sur le PC** avant de l’installer
+sur l’iPhone (Sideloadly branché plus tard). Lancement : option **[4]** du menu
+Start O, ou manuellement :
+
+```powershell
+npx expo start        # puis ouvrir Visualiser.html (ou http://localhost:8081)
+```
+
+`Visualiser.html` (racine du projet) affiche l’app dans un cadre iPhone
+(390×844, île dynamique, fond sombre studio) avec les boutons **Recharger**,
+**Ouvrir dans un onglet** et **Rafraîchir le cadre**. Metro ne renvoie ni
+`X-Frame-Options` ni `CSP frame-ancestors` : l’iframe de `localhost:8081`
+s’affiche sans serveur additionnel.
+
+Ce qui change **uniquement sur le web** (les extensions `.web.tsx` sont
+ignorées par le bundle iOS — `npx expo export --platform ios` le vérifie) :
+
+| Fichier | Rôle sur PC |
+|---|---|
+| `src/lib/demo.ts` | Génère un `ScrapeData` fictif (Mio 5/3 non lus, horaire, Léa + badges, notes, services, événements, actualités…) |
+| `src/components/session-probe.web.tsx` | Sans WebView, émet le JSON `scrape` de démo dans le pont (`Quitter` → déconnecté), 600 ms après montage puis à chaque `reload()` |
+| `src/components/portal-webview.web.tsx` | Carte « portail affiché sur l’iPhone » (contrat `PortalWebViewHandle`/`NavState` conservé) |
+| `src/components/file-preview.web.tsx` | Prévisualisation de document → message « sur l’iPhone » |
+| `src/app/(tabs)/_layout.web.tsx` | Barre d’onglets web (headless `expo-router/ui`) façon iOS : blanc, pêche `#FBE9D0`, bleu `#1E6FD9`, pastilles rouges — hauteur 100 %, défilement interne |
+| `src/lib/notifications.ts` | Retours anticipés `Platform.OS === 'web'` (handler, permission, badge) |
+
+Portée : l’aperçu ne consulte **jamais** le portail réel (pas d’identifiants,
+pas de CORS) ; l’iPhone, lui, conserve le scraping natif. Les téléchargements
+(liste, prévisualisation) restent vides sur PC — stocks nativement via Files API.
+
+Portes de qualité du Visualiser : `npx expo export --platform web` (21 routes
+statiques) + vérification navigateur (0 erreur console, onglets/badges/démo,
+cadre iframe chargé).
+
 Portes de qualité (toutes réussies actuellement) :
 
 ```powershell
 npx tsc --noEmit                    # typecheck — 0 erreur
 npx expo lint                       # eslint — 0 problème
-npx expo export --platform ios      # bundle de production — OK
+npx expo export --platform ios      # bundle iOS — OK
+npx expo export --platform web      # bundle Visualiser — OK (21 routes)
 npx expo-doctor                     # 21/21
 ```
 
@@ -269,8 +307,12 @@ src/
 │   ├── ox.tsx              briques UI : OxHeader, SectionBand, CountBadge,
 │   │                       LoadingBlock, FallbackPrompt, Card, IconButton
 │   ├── portal-webview.tsx  enveloppe WebView (toolbar, erreurs/retry, messages FR)
+│   ├── portal-webview.web.tsx  aperçu PC : carte « portail sur l’iPhone »
 │   ├── portal-screen.tsx   barre d’outils + PortalWebView
-│   └── session-probe.tsx   WebView cachée de sondage
+│   ├── session-probe.tsx   WebView cachée de sondage
+│   ├── session-probe.web.tsx   aperçu PC : émet le JSON de démonstration
+│   ├── file-preview.tsx    prévisualisation document (WebView fichier://)
+│   └── file-preview.web.tsx    aperçu PC : message « sur l’iPhone »
 ├── providers/
 │   └── app-state.tsx       contexte global (voir 5.4)
 ├── lib/
@@ -278,13 +320,18 @@ src/
 │   ├── bridge.ts           types de messages + ScrapeData étendu
 │   ├── injected.ts         script injecté (routeur/analyseurs/téléchargeur)
 │   ├── handle-bridge.ts    message → handlers (navigateur, webview générique)
+│   ├── demo.ts             aperçu PC : ScrapeData fictif complet
 │   ├── downloads.ts        réassemblage, stockage Files API, pub/sub, MIME
 │   └── notifications.ts    permissions, notifications locales, badge d’app
+│                           (retours anticipés web)
 ├── hooks/                  use-theme, use-color-scheme (+ .web)
 ├── constants/theme.ts      palette Omnivox (orange #F5821F, bleu #1E6FD9,
 │                           rouge #E53935, pêche #FBE9D0), Fonts, Spacing
 └── app/                    routes uniquement (voir 5.5)
+                            (tabs)/_layout.web.tsx = barre d’onglets PC
 ```
+
+À la racine : `Start O.bat` (menu 1–4), `Visualiser.html` (cadre iPhone).
 
 ## 7. Design et identité
 
@@ -313,6 +360,8 @@ src/
 | `npx tsc --noEmit` | ✅ 0 erreur (routes régénérées) |
 | `npx expo lint` | ✅ 0 problème |
 | `npx expo export --platform ios` | ✅ bundle Hermes construit |
+| `npx expo export --platform web` | ✅ 21 routes statiques (Visualiser) |
+| Navigateur (Playwright/Chromium) | ✅ 0 erreur console : démo chargée, onglets/badges cliquables, barre épinglée (doc = viewport), cadre `Visualiser.html` affichant l’app |
 | `npx expo-doctor` | ✅ 21/21 |
 | `npx expo install --check` | ✅ dépendances à jour |
 | `Start O.bat` (lancement réel) | ✅ Metro + tunnel ngrok : `https://…exp.direct` |
@@ -342,6 +391,10 @@ Correctifs et pièges rencontrés :
   token GitHub → `gh auth refresh -s workflow`
 - `gh` absent de Windows : échec winget (UAC 1602) → binaire portable dans
   `%LOCALAPPDATA%\Programs\gh\bin\` + PATH utilisateur
+- Barre d’onglets PC poussée hors écran : sur le web le document grandit avec
+  le contenu (min-height des flex) → racine `height: '100%'` + `minHeight: 0`
+  sur `Tabs`/`TabSlot` (Expo fournit déjà `html,#root{height:100%}`);
+  `height: '100vh'` casse le typage `DimensionValue` de RN → `100%`
 
 ## 9. Limitations connues et travaux futurs
 
@@ -354,6 +407,9 @@ Correctifs et pièges rencontrés :
 - Les données scappées ne sont mises à jour que pendant l’utilisation de l’app
   (sondage 2 min + premier plan)
 - Les cégeps personnalisés ne sont pas testés (motifs FR/GEN)
+- **Aperçu PC** : portail non navigable (carte explicative), prévisualisation
+  et liste des téléchargements vides (Files API native), `Alert.alert` sans
+  effet sur le web (confirmations) — tout fonctionne sur l’iPhone
 - L’app installée expire après **7 jours** (compte Apple gratuit) : garder
   Sideloadly ouvert pour le renouvellement automatique, sinon re-glisser
   l’IPA. Les notifications locales et badges fonctionnent (pas d’APNs requis)

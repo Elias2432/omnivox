@@ -35,6 +35,7 @@ conservés par l’application.
 2. **LAN** — réseau local, plus rapide sur le même Wi-Fi
 3. **Corriger le LAN** — élève en administrateur, passe le réseau Windows en
    « Privé », ouvre le pare-feu pour Node, puis démarre en LAN
+4. **Visualiser** — ouvre l’application dans un navigateur sur ce PC (voir plus bas)
 
 Scanner le QR avec l’appareil photo de l’iPhone (**Expo Go** requis).
 
@@ -43,6 +44,21 @@ Manuellement :
 ```bash
 npx expo start --tunnel    # ou: npx expo start
 ```
+
+## Aperçu sur le PC (Visualiser)
+
+L’option **[4] Visualiser** du menu Start O démarre le serveur Expo puis ouvre
+`Visualiser.html` : l’app s’affiche dans un cadre iPhone sur votre bureau,
+navigable à la souris (onglets, badges, écrans). Sans iPhone, sans comptes :
+
+- **Données de démonstration** — Mio, Léa, horaire, notes… sont peuplés de
+  contenus fictifs (`src/lib/demo.ts`) ; le portail réel n’est **jamais** touché
+  par cet aperçu et aucun identifiant n’est saisi
+- Fichiers exclus au web : les `.web.tsx` (sonde, portail, visualiseur de
+  fichiers) remplacent les WebViews natives ; l’iPhone utilise les fichiers
+  d’origine — le bundle iOS ne change pas
+- Boutons de la page cadre : **Recharger**, **Ouvrir dans un onglet** (plein
+  écran), **Rafraîchir le cadre**
 
 ## Installer l’app sur l’iPhone (Sideloadly)
 
@@ -63,10 +79,11 @@ automatiquement tant que Sideloadly reste ouvert), **3 apps** maximum.
 ## Vérifications
 
 ```bash
-npx tsc --noEmit                 # typecheck
-npx expo lint                    # eslint
-npx expo export --platform ios   # bundle de production
-npx expo-doctor                  # 21/21
+npx tsc --noEmit                  # typecheck
+npx expo lint                     # eslint
+npx expo export --platform ios    # bundle iOS de production
+npx expo export --platform web    # bundle du Visualiser PC
+npx expo-doctor                   # 21/21
 ```
 
 ## Pile technique

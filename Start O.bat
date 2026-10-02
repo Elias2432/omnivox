@@ -10,12 +10,14 @@ echo ============================================
 echo    [1] Tunnel mode - works on any network
 echo    [2] LAN mode     - same Wi-Fi, fastest
 echo    [3] Fix LAN mode - admin network/firewall setup
+echo    [4] Visualiser   - preview the app in a browser (PC)
 echo ============================================
-set /p CHOICE=Choose 1, 2 or 3 - press Enter for 1:
+set /p CHOICE=Choose 1, 2, 3 or 4 - press Enter for 1:
 if "%CHOICE%"=="" set CHOICE=1
 if "%CHOICE%"=="1" goto tunnel
 if "%CHOICE%"=="2" goto lan
 if "%CHOICE%"=="3" goto askadmin
+if "%CHOICE%"=="4" goto visualiser
 echo Invalid choice.
 pause
 exit /b 1
@@ -50,6 +52,20 @@ exit /b 0
 echo.
 echo   Requesting administrator rights for the LAN fix...
 powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%~f0' -ArgumentList 'admin' -Verb RunAs"
+exit /b 0
+
+:visualiser
+title O - Visualiser (apercu PC)
+echo.
+echo   Starting the Expo dev server in a second window...
+start "O - Metro (Visualiser)" cmd /k npx expo start
+echo   Waiting for Metro on http://localhost:8081 (first start ~30 s)...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ok=$false; $d=(Get-Date).AddSeconds(150); while((Get-Date) -lt $d){ try{ Invoke-WebRequest -Uri 'http://localhost:8081' -UseBasicParsing -TimeoutSec 3 | Out-Null; $ok=$true; break }catch{ Start-Sleep -Seconds 2 } }; if($ok){ Write-Host 'Metro is ready.' } else { Write-Host 'Metro did not answer on port 8081 - check the second window.' }"
+start "" "%~dp0Visualiser.html"
+echo.
+echo   The visualiser window is open. Metro keeps running in its own window.
+echo   Press any key to close this launcher...
+pause >nul
 exit /b 0
 
 :fixlan

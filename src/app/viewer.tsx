@@ -2,8 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Sharing from 'expo-sharing';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
-import { WebView } from 'react-native-webview';
 
+import { FilePreview } from '@/components/file-preview';
 import { useAppState } from '@/providers/app-state';
 import { useTheme } from '@/hooks/use-theme';
 import { formatBytes, isPreviewable } from '@/lib/downloads';
@@ -72,12 +72,7 @@ export default function ViewerScreen() {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <Stack.Screen options={{ title: file.name }} />
       {isPreviewable(file.name) ? (
-        <WebView
-          source={{ uri: file.uri }}
-          style={styles.preview}
-          originWhitelist={['file://*']}
-          allowingReadAccessToURL={file.uri.slice(0, file.uri.lastIndexOf('/'))}
-        />
+        <FilePreview uri={file.uri} name={file.name} />
       ) : (
         <View style={styles.center}>
           <Ionicons name="document-outline" size={52} color={theme.textSecondary} />
@@ -100,7 +95,6 @@ export default function ViewerScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  preview: { flex: 1, backgroundColor: '#ffffff' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 10 },
   centerTitle: { fontSize: 17, fontWeight: '700', textAlign: 'center' },
   centerBody: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
