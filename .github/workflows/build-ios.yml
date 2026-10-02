@@ -22,11 +22,11 @@ concurrency:
 jobs:
   build-ios:
     name: Build unsigned IPA (Sideloadly signs it)
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 60
     env:
       EXPO_NO_TELEMETRY: '1'
-      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
     steps:
       - name: Checkout
         uses: actions/checkout@v4
